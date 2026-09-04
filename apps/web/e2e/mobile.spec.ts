@@ -42,3 +42,14 @@ test("opportunity agent saves a structured result", async ({ page }) => {
   await page.goto("/demand");
   await expect(page.getByText("AI-тестовая возможность")).toBeVisible();
 });
+
+test("crawl workflow reports the exact source validation error", async ({ page }) => {
+  await page.goto("/crawls");
+  await page.getByRole("button", { name: "Новое сканирование" }).click();
+  await page.getByLabel("ID утверждённого источника").selectOption("source-catalog");
+  await page.getByLabel("Стартовый URL").fill("https://catalog.example.org/");
+  await page.getByRole("button", { name: "Новое сканирование" }).last().click();
+  const error = page.locator(".form-error");
+  await expect(error).toContainText("имеет статус REVIEW_REQUIRED");
+  await expect(error).toContainText("Сначала утвердите его в Реестре источников");
+});
