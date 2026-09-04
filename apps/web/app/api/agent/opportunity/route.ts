@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   try {
     const agent = new ToolLoopAgent({
-      model: onVercel ? gateway("openai/gpt-5.4-mini") : openai("gpt-5.4-mini"),
+      model: process.env.OPENAI_API_KEY ? openai("gpt-5.4-mini") : gateway("openai/gpt-5.4-mini"),
       instructions: "Ты LeadScope Opportunity Agent. Анализируй только переданные агрегированные коммерческие данные. Сначала используй инструменты обзора рынка и compliance, затем предложи одну конкретную возможность. Не делай персональных выводов, не предлагай холодный B2C outreach и не выдумывай доказательства. Отвечай по-русски.",
       tools: {
         inspectMarket: tool({ description: "Получить агрегированные метрики и рыночные данные", inputSchema: z.object({}), execute: async () => ({ market: input.market, region: input.region, offers: input.offers, opportunities: input.opportunities, signals: input.signals, companies: input.companies }) }),
