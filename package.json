@@ -1,0 +1,13 @@
+{
+  "name": "leadscope-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev": "pnpm --filter @leadscope/web dev",
+    "build": "pnpm --filter @leadscope/web build",
+    "lint": "pnpm --filter @leadscope/web lint",
+    "typecheck": "pnpm --filter @leadscope/web typecheck",
+    "test": "pnpm --filter @leadscope/web test"
+  }
+}

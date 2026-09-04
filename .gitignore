@@ -1,0 +1,24 @@
+.env
+.env.*
+!.env.example
+.vercel/
+*.pem
+*.key
+Доступы и пароли.png
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.py[cod]
+*.db
+*.sqlite3
+node_modules/
+.next/
+coverage/
+.coverage
+*.tsbuildinfo
+test-results/
+playwright-report/
+dist/
+.DS_Store

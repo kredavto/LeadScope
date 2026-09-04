@@ -1,0 +1,5 @@
+[
+  {"market_type":"B2C","name":"Ремонт смартфонов","version":"1.0","countries":["RU"],"sensitivity":"NORMAL","intent_phrases":["замена экрана","срочный ремонт"],"allowed_source_types":["PUBLIC_COMPANY_SITE"],"forbidden_url_patterns":["/login","/account"],"retention_days":365},
+  {"market_type":"B2B","name":"SaaS для отделов продаж","version":"1.0","countries":["RU"],"sensitivity":"NORMAL","intent_phrases":["внедрение CRM","автоматизация продаж"],"allowed_source_types":["PUBLIC_COMPANY_SITE","OFFICIAL_REGISTRY","LICENSED_API"],"forbidden_url_patterns":["/private"],"retention_days":365}
+]
+

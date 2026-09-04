@@ -1,0 +1,3 @@
+id,market_type,source_type,email,phone,allowed_channels,score
+00000000-0000-4000-8000-000000000099,B2C,FIRST_PARTY_FORM,demo@example.com,+70000000001,EMAIL|PHONE,88
+

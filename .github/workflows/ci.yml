@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: python -m pip install -e './backend[dev]'
+      - run: ruff check backend
+      - run: mypy backend/app
+      - run: pytest backend --cov=backend/app
+      - run: cd backend && alembic upgrade head
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with: { version: "11.19.0" }
+      - uses: actions/setup-node@v5
+        with: { node-version: "22.19", cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm --filter @leadscope/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @leadscope/web test:e2e

@@ -1,0 +1,24 @@
+Metadata-Version: 2.4
+Name: leadscope-api
+Version: 1.0.0
+Requires-Python: >=3.12
+Requires-Dist: alembic==1.16.5
+Requires-Dist: argon2-cffi==25.1.0
+Requires-Dist: beautifulsoup4==4.13.5
+Requires-Dist: celery[redis]==5.5.3
+Requires-Dist: cryptography==45.0.7
+Requires-Dist: email-validator==2.3.0
+Requires-Dist: fastapi==0.141.1
+Requires-Dist: httpx==0.28.1
+Requires-Dist: psycopg[binary]==3.2.10
+Requires-Dist: pydantic-settings==2.10.1
+Requires-Dist: PyJWT==2.10.1
+Requires-Dist: python-multipart==0.0.20
+Requires-Dist: SQLAlchemy==2.0.43
+Requires-Dist: uvicorn[standard]==0.35.0
+Provides-Extra: dev
+Requires-Dist: mypy==1.17.1; extra == "dev"
+Requires-Dist: pytest==8.4.2; extra == "dev"
+Requires-Dist: pytest-cov==6.3.0; extra == "dev"
+Requires-Dist: pytest-asyncio==1.1.0; extra == "dev"
+Requires-Dist: ruff==0.12.12; extra == "dev"

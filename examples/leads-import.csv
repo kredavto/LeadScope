@@ -1,0 +1,4 @@
+market_type,source_type,email,phone,purpose,legal_basis,consent_version,consent_timestamp,allowed_channels,proof
+B2C,FIRST_PARTY_FORM,demo@example.com,+70000000001,MARKETING_CALLBACK,CONSENT,v1.2,2026-09-03T09:41:02Z,EMAIL|PHONE,checkbox_checked
+B2B,PARTNER,procurement@example.org,,SALES_FOLLOWUP,,,,,
+

@@ -1,0 +1,7 @@
+.pytest_cache
+.ruff_cache
+tests
+*.db
+*.egg-info
+**/__pycache__
+**/*.pyc

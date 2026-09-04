@@ -1,0 +1,102 @@
+name: leadscope
+services:
+  db:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: leadscope
+      POSTGRES_USER: leadscope
+      POSTGRES_PASSWORD: leadscope
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leadscope -d leadscope"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:8.2.1-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://leadscope:leadscope@db:5432/leadscope
+      REDIS_URL: redis://redis:6379/0
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build:
+      context: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://leadscope:leadscope@db:5432/leadscope
+      REDIS_URL: redis://redis:6379/0
+    command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO"]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://leadscope:leadscope@db:5432/leadscope
+      REDIS_URL: redis://redis:6379/0
+    command:
+      [
+        "celery",
+        "-A",
+        "app.tasks.celery_app",
+        "beat",
+        "--loglevel=INFO",
+        "--schedule=/tmp/celerybeat-schedule",
+      ]
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      INTERNAL_API_URL: http://api:8000/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
