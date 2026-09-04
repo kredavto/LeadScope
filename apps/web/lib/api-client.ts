@@ -4,8 +4,10 @@ export type ApiSession = {
   displayName: string;
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = CONFIGURED_API_URL ?? "http://localhost:8000/api/v1";
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true"
+  || (!CONFIGURED_API_URL && process.env.NODE_ENV === "production");
 const SESSION_KEY = "leadscope.session.v1";
 const DEMO_TENANT_ID = "00000000-0000-4000-8000-000000000001";
 
