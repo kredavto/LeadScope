@@ -22,6 +22,23 @@ test("competitor workflow exposes a validated API form", async ({ page }) => {
   await page.goto("/competitors");
   await page.getByRole("button", { name: "Добавить конкурента" }).click();
   await expect(page.getByRole("dialog", { name: "Добавить конкурента" })).toBeVisible();
-  await expect(page.getByLabel("Название конкурента")).toBeVisible();
-  await expect(page.getByLabel("Домен")).toBeVisible();
+  await page.getByLabel("Название конкурента").fill("Тестовый конкурент");
+  await page.getByLabel("Домен").fill("competitor.example.com");
+  await page.getByLabel("Ниша").fill("Ремонт смартфонов");
+  await page.getByRole("button", { name: "Добавить конкурента" }).last().click();
+  await expect(page.getByText(/Готово/)).toBeVisible();
+  await page.getByRole("button", { name: "Закрыть" }).last().click();
+  await expect(page.getByText("Тестовый конкурент")).toBeVisible();
+});
+
+test("opportunity agent saves a structured result", async ({ page }) => {
+  await page.route("**/api/agent/opportunity", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ mode: "ai", result: { title: "AI-тестовая возможность", segment: "B2B · Москва", summary: "Проверяемая возможность для быстрого рыночного пилота.", evidence: ["3 сигнала", "2 предложения"], score: 87, confidence: 91, nextSteps: ["Проверить evidence", "Запустить пилот"], compliance: "Использовать только разрешённые каналы и проверенные основания." } }) }));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Найти возможность" }).click();
+  await page.getByLabel(/Что особенно важно/).fill("быстрый B2B-пилот");
+  await page.getByRole("button", { name: "Запустить агента" }).click();
+  await expect(page.getByRole("heading", { name: "AI-тестовая возможность" })).toBeVisible();
+  await page.getByRole("button", { name: "Сохранить возможность" }).click();
+  await page.goto("/demand");
+  await expect(page.getByText("AI-тестовая возможность")).toBeVisible();
 });

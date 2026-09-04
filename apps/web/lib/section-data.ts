@@ -1,4 +1,6 @@
-export type Row = Record<string, string | number>;
+import type { CollectionKey, WorkspaceState } from "./workspace-data";
+
+export type Row = Record<string, unknown>;
 
 export type Section = {
   title: string;
@@ -9,6 +11,33 @@ export type Section = {
   columns: { key: string; label: string }[];
   rows: Row[];
 };
+
+export const sectionCollections: Record<string, CollectionKey | null> = {
+  niches: "niches", competitors: "competitors", sources: "sources", crawls: "crawls",
+  "market-map": "offers", demand: "opportunities", accounts: "companies", signals: "signals",
+  contacts: "contacts", leads: "leads", compliance: null, suppression: "suppressions",
+  "data-requests": "requests", exports: "exports", audit: "audit", retention: "retention",
+  policies: "policies", settings: null,
+};
+
+export function rowsForSection(sectionKey: string, workspace: WorkspaceState): Row[] {
+  if (sectionKey === "compliance") {
+    const contactRows = workspace.contacts.filter((row) => String(row.status).includes("REVIEW")).map((row) => ({ ...row, record: row.contact, type: row.kind, reason: row.legalBasis, age: "сегодня", originCollection: "contacts" }));
+    const leadRows = workspace.leads.filter((row) => ["QUARANTINED", "REVIEW_REQUIRED"].includes(String(row.status))).map((row) => ({ ...row, record: row.lead, type: "LEAD", reason: row.consent === "INCOMPLETE" ? "Нет доказательства согласия" : "Требуется проверка", age: "сегодня", originCollection: "leads" }));
+    const sourceRows = workspace.sources.filter((row) => String(row.status).includes("REVIEW")).map((row) => ({ ...row, record: row.source, type: "SOURCE", reason: row.legalBasis, age: "сегодня", originCollection: "sources" }));
+    return [...contactRows, ...leadRows, ...sourceRows];
+  }
+  if (sectionKey === "settings") {
+    return [
+      { id: "workspace-name", setting: "Название workspace", value: workspace.settings.workspaceName, scope: "Workspace", changed: "сохранено", status: "ACTIVE" },
+      { id: "locale", setting: "Язык", value: workspace.settings.locale === "ru" ? "Русский" : "English", scope: "Пользователь", changed: "сохранено", status: "ACTIVE" },
+      { id: "crawler-contact", setting: "Crawler contact", value: workspace.settings.crawlerContact, scope: "Workspace", changed: "сохранено", status: "ACTIVE" },
+      { id: "llm-provider", setting: "AI-агент", value: "Vercel AI Gateway · OpenAI", scope: "Server", changed: "v2.0", status: "ACTIVE" },
+    ];
+  }
+  const collection = sectionCollections[sectionKey];
+  return collection ? workspace[collection] : [];
+}
 
 export const sections: Record<string, Section> = {
   niches: {
@@ -194,4 +223,3 @@ export const sections: Record<string, Section> = {
     ],
   },
 };
-

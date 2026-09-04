@@ -12,7 +12,7 @@ export function SectionPage({ section, sectionKey }: { section: Section; section
         <SectionAction sectionKey={sectionKey} label={section.action} />
       </div>
       {section.notice ? <div className="notice"><AlertTriangle size={16} />{section.notice}</div> : null}
-      <DataExplorer section={section} />
+      <DataExplorer section={section} sectionKey={sectionKey} />
     </AppShell>
   );
 }

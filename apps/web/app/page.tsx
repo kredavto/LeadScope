@@ -1,21 +1,27 @@
-import { ArrowUpRight, CheckCircle2, Clock3, DatabaseZap, Radar, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+"use client";
+
+import { ArrowUpRight, CheckCircle2, Clock3, DatabaseZap, Radar, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { OpportunityAgent } from "@/components/opportunity-agent";
 import { StatusPill } from "@/components/status-pill";
-
-const stats = [
-  { label: "Активные конкуренты", value: "12", delta: "+2 за 30 дней", icon: Radar },
-  { label: "B2B-компании в ICP", value: "148", delta: "23 с новыми сигналами", icon: UsersRound },
-  { label: "Разрешённые лиды", value: "64", delta: "71% от входящих", icon: CheckCircle2 },
-  { label: "Требуют внимания", value: "9", delta: "3 высокого риска", icon: ShieldCheck },
-];
+import { useWorkspace } from "@/components/workspace-provider";
 
 export default function DashboardPage() {
+  const { workspace } = useWorkspace();
+  const allowedLeads = workspace.leads.filter((item) => item.status === "CONTACT_ALLOWED").length;
+  const reviewCount = [...workspace.contacts, ...workspace.leads, ...workspace.sources].filter((item) => ["REVIEW_REQUIRED", "QUARANTINED"].includes(String(item.status))).length;
+  const stats = [
+    { label: "Активные конкуренты", value: workspace.competitors.filter((item) => item.status === "ACTIVE").length, delta: `${workspace.sources.length} источника`, icon: Radar },
+    { label: "B2B-компании в ICP", value: workspace.companies.length, delta: `${workspace.signals.length} активных сигналов`, icon: UsersRound },
+    { label: "Разрешённые лиды", value: allowedLeads, delta: `${workspace.leads.length} входящих всего`, icon: CheckCircle2 },
+    { label: "Требуют внимания", value: reviewCount, delta: "policy review", icon: ShieldCheck },
+  ];
   return (
     <AppShell>
       <div className="page-head">
         <div><div className="eyebrow">Операционный обзор · 3 сентября 2026</div><h1>Контроль спроса и лидов</h1><p className="subtitle">Рыночные сигналы, B2B intent и first-party лиды в одном контуре — с provenance, consent и policy gate.</p></div>
-        <button className="btn primary"><Sparkles size={15} />Найти возможность</button>
+        <OpportunityAgent />
       </div>
       <div className="notice"><ShieldCheck size={16} />Публичная доступность данных не означает разрешение на рекламное использование. Агрегированные сигналы не считаются идентифицированными лидами.</div>
       <section className="stats" aria-label="Ключевые метрики">
@@ -41,11 +47,7 @@ export default function DashboardPage() {
         </div>
         <div className="card">
           <div className="card-head"><div><div className="card-title">Главные рыночные возможности</div><div className="card-note">Score прозрачно рассчитан из пяти факторов</div></div><Link className="tag" href="/demand">Все возможности</Link></div>
-          <div className="table-scroll"><table><thead><tr><th>Возможность</th><th>Сегмент</th><th>Evidence</th><th>Score</th></tr></thead><tbody>
-            <tr><td><div className="primary-cell">Ремонт за 60 минут</div><div className="secondary-cell">Фиксированная цена + гарантия</div></td><td>B2C · Смартфоны</td><td>42 сигнала</td><td><StatusPill value="82 / 100" /></td></tr>
-            <tr><td><div className="primary-cell">Диагностическое оборудование</div><div className="secondary-cell">Тендер + вакансия закупок</div></td><td>B2B · Автосервисы</td><td>2 источника</td><td><StatusPill value="86 / 100" /></td></tr>
-            <tr><td><div className="primary-cell">Прозрачные условия кредита</div><div className="secondary-cell">Нет скрытых комиссий</div></td><td>B2C · Автокредиты</td><td>37 сигналов</td><td><StatusPill value="74 / 100" /></td></tr>
-          </tbody></table></div>
+          <div className="table-scroll"><table><thead><tr><th>Возможность</th><th>Разрыв</th><th>Evidence</th><th>Score</th></tr></thead><tbody>{workspace.opportunities.slice(0, 3).map((item) => <tr key={item.id}><td><div className="primary-cell">{String(item.opportunity)}</div><div className="secondary-cell">{String(item.summary ?? "Проверяемая рыночная гипотеза")}</div></td><td>{String(item.gap)}</td><td>{String(item.signals)} сигнала</td><td><StatusPill value={`${String(item.score)} / 100`} /></td></tr>)}</tbody></table></div>
         </div>
         <div className="card">
           <div className="card-head"><div><div className="card-title">Свежесть данных</div><div className="card-note">SLA источников</div></div><DatabaseZap size={15} /></div>
