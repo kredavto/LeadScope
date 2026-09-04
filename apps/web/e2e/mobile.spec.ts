@@ -46,10 +46,32 @@ test("opportunity agent saves a structured result", async ({ page }) => {
 test("crawl workflow reports the exact source validation error", async ({ page }) => {
   await page.goto("/crawls");
   await page.getByRole("button", { name: "Новое сканирование" }).click();
-  await page.getByLabel("ID утверждённого источника").selectOption("source-catalog");
+  await page.getByLabel("Утверждённый источник").selectOption("source-catalog");
   await page.getByLabel("Стартовый URL").fill("https://catalog.example.org/");
   await page.getByRole("button", { name: "Новое сканирование" }).last().click();
   const error = page.locator(".form-error");
   await expect(error).toContainText("имеет статус REVIEW_REQUIRED");
   await expect(error).toContainText("Сначала утвердите его в Реестре источников");
+});
+
+test("approved crawl saves extracted offers in the market map", async ({ page }) => {
+  await page.route("**/api/extraction/offers", async (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      crawl: { url: "https://service.example.com/", pages: 2, changed: 1, duration: "2 сек", status: "COMPLETED", startedAt: "только что" },
+      offers: [{ offer: "Срочный ремонт", company: "Пример Сервис", price: "9 900 ₽", change: "Новое", evidence: "https://service.example.com/prices", confidence: 93, fingerprint: "test-offer", contentHash: "abc", extractedAt: "2026-09-04T12:00:00Z", extractor: "deterministic-v1", sourceId: "source-service", status: "VERIFIED" }],
+      mode: "deterministic",
+      warnings: [],
+    }),
+  }));
+  await page.goto("/crawls");
+  await page.getByRole("button", { name: "Новое сканирование" }).click();
+  await page.getByLabel("Утверждённый источник").selectOption("source-service");
+  await page.getByLabel("Стартовый URL").fill("https://service.example.com/");
+  await page.getByRole("button", { name: "Новое сканирование" }).last().click();
+  await expect(page.getByText(/2 стр. · найдено 1 · обновлено 1/)).toBeVisible();
+  await page.goto("/market-map");
+  await expect(page.getByText("Срочный ремонт")).toBeVisible();
+  await expect(page.getByText("9 900 ₽")).toBeVisible();
 });

@@ -84,8 +84,8 @@ export const sections: Record<string, Section> = {
     ],
   },
   "market-map": {
-    title: "Карта предложений", eyebrow: "Сравнение рынка", action: "Экспортировать снимок",
-    description: "Сопоставление ассортимента, цен, условий и доказательств по конкурентам.",
+    title: "Карта предложений", eyebrow: "Сравнение рынка", action: "Скачать карту CSV",
+    description: "Предложения и цены из разрешённых сканирований с доказательством для каждого результата.",
     columns: [{ key: "offer", label: "Предложение" }, { key: "company", label: "Компания" }, { key: "price", label: "Цена" }, { key: "change", label: "Изменение" }, { key: "evidence", label: "Provenance" }],
     rows: [
       { offer: "Замена экрана", company: "Пример Сервис", price: "7 500 ₽", change: "+600 ₽", evidence: "service.example.com/screens" },

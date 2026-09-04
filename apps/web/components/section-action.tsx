@@ -11,7 +11,7 @@ const fieldMap: Record<string, Field[]> = {
   niches: [{ key: "name", label: "Название шаблона", required: true }, { key: "market", label: "Рынок", options: ["B2C", "B2B"] }, { key: "sensitivity", label: "Чувствительность", options: ["NORMAL", "FINANCIAL", "HEALTH", "CHILDREN", "LEGAL"] }],
   competitors: [{ key: "name", label: "Название конкурента", required: true }, { key: "domain", label: "Домен", placeholder: "example.com", required: true }, { key: "niche", label: "Ниша", required: true }],
   sources: [{ key: "url", label: "Публичный URL", placeholder: "https://example.com", required: true }, { key: "owner", label: "Владелец" }, { key: "legalBasis", label: "Основание", required: true }, { key: "robots", label: "Robots", options: ["CHECKED", "ALLOWED", "DENIED"] }],
-  crawls: [{ key: "sourceId", label: "ID утверждённого источника", required: true }, { key: "url", label: "Стартовый URL", required: true }],
+  crawls: [{ key: "sourceId", label: "Утверждённый источник", required: true }, { key: "url", label: "Стартовый URL", required: true }],
   accounts: [{ key: "company", label: "Компания", required: true }, { key: "domain", label: "Домен", required: true }, { key: "industry", label: "Отрасль", required: true }, { key: "size", label: "Размер", options: ["1–10", "11–50", "51–200", "201–500", "500+"] }],
   signals: [{ key: "company", label: "Компания", required: true }, { key: "signal", label: "Сигнал", required: true }, { key: "type", label: "Тип", options: ["TENDER", "VACANCY", "EXPANSION", "TECH_CHANGE"] }],
   contacts: [{ key: "company", label: "Компания", required: true }, { key: "contact", label: "Публичный деловой контакт", required: true }, { key: "kind", label: "Тип", options: ["ROLE_EMAIL", "COMPANY_PHONE"] }, { key: "source", label: "Источник", required: true }],
@@ -83,7 +83,27 @@ export function SectionAction({ sectionKey, label }: { sectionKey: string; label
         const sourceHost = new URL(String(source.url)).hostname;
         const startHost = new URL(values.url).hostname;
         if (sourceHost !== startHost) throw new Error(`Стартовый URL относится к домену ${startHost}, а выбранный источник — к ${sourceHost}.`);
-        id = record("crawls", { sourceId: values.sourceId, url: values.url, pages: 14, changed: 4, duration: "00:37", status: "COMPLETED", startedAt: "только что" }, "CRAWL_COMPLETE");
+        const response = await fetch("/api/extraction/offers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: { id: source.id, url: source.url, owner: source.owner || source.source, status: source.status, robots: source.robots },
+            startUrl: values.url,
+            crawlerContact: workspace.settings.crawlerContact,
+          }),
+        });
+        const payload = await response.json() as { error?: string; crawl?: Record<string, unknown>; offers?: WorkspaceRecord[]; mode?: string; warnings?: string[] };
+        if (!response.ok || !payload.crawl || !payload.offers) throw new Error(payload.error || `Сервис извлечения вернул HTTP ${response.status}.`);
+        let changed = 0;
+        for (const offer of payload.offers) {
+          const existing = workspace.offers.find((item) => item.fingerprint === offer.fingerprint);
+          if (existing) {
+            if (existing.contentHash !== offer.contentHash) { updateRecord("offers", existing.id, offer); changed += 1; }
+          } else { addRecord("offers", offer); changed += 1; }
+        }
+        id = record("crawls", { ...payload.crawl, sourceId: values.sourceId, changed, extractionMode: payload.mode }, "CRAWL_EXTRACT_COMPLETE");
+        const warning = payload.warnings?.[0];
+        setResult(`Готово · ${String(payload.crawl.pages)} стр. · найдено ${payload.offers.length} · обновлено ${changed}${warning ? ` · ${warning}` : ""}`);
       }
       else if (sectionKey === "accounts") id = record("companies", { company: values.company, domain: values.domain, industry: values.industry, size: values.size, signals: 0, score: 60, status: "WATCH" }, "ACCOUNT_CREATE");
       else if (sectionKey === "signals") id = record("signals", { company: values.company, signal: values.signal, type: values.type, date: "только что", confidence: 75, status: "NEW" }, "SIGNAL_CREATE");
@@ -98,7 +118,7 @@ export function SectionAction({ sectionKey, label }: { sectionKey: string; label
       else if (["exports", "market-map", "audit"].includes(sectionKey)) { const data = sectionKey === "audit" ? workspace.audit : sectionKey === "market-map" ? workspace.offers : workspace.leads.filter((lead) => lead.status === "CONTACT_ALLOWED"); downloadCsv(`leadscope-${sectionKey}-${Date.now()}.csv`, data); id = record("exports", { export: `EXP-${Date.now().toString().slice(-6)}`, provider: "CSV", records: data.length, actor: "Демо-владелец", date: "только что", status: "COMPLETED" }, "DATA_EXPORT"); }
       else if (sectionKey === "retention") { workspace.retention.forEach((item) => updateRecord("retention", item.id, { next: "завтра, 02:00", status: "COMPLETED" })); addAudit("RETENTION_RUN", "workspace"); id = "retention-run"; }
       else throw new Error("Действие пока недоступно.");
-      setResult(`Готово · ${id}`);
+      if (sectionKey !== "crawls") setResult(`Готово · ${id}`);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Операция не выполнена"); }
     finally { setLoading(false); }
   }
