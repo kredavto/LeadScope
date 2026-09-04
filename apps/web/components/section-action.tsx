@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Plus, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
+import { buildExcelCsv, type CsvColumn, marketMapCsvColumns } from "@/lib/csv-export";
 import type { CollectionKey, WorkspaceRecord } from "@/lib/workspace-data";
 import { useWorkspace } from "./workspace-provider";
 
@@ -37,16 +38,10 @@ async function identityHash(value: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
 
-function downloadCsv(name: string, records: WorkspaceRecord[]) {
-  const keys = Array.from(new Set(records.flatMap((record) => Object.keys(record).filter((key) => typeof record[key] !== "object"))));
-  const safe = (value: unknown) => {
-    const text = String(value ?? "");
-    const neutralized = /^[=+\-@]/.test(text) ? `'${text}` : text;
-    return `"${neutralized.replaceAll('"', '""')}"`;
-  };
-  const csv = [keys.map(safe).join(","), ...records.map((record) => keys.map((key) => safe(record[key])).join(","))].join("\r\n");
+function downloadCsv(name: string, records: WorkspaceRecord[], columns?: CsvColumn[]) {
+  const csv = buildExcelCsv(records, columns);
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+  link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   link.download = name;
   link.click();
   URL.revokeObjectURL(link.href);
@@ -115,7 +110,7 @@ export function SectionAction({ sectionKey, label }: { sectionKey: string; label
       else if (sectionKey === "settings") { saveSettings({ workspaceName: values.workspaceName, country: values.country, region: values.region, crawlerContact: values.crawlerContact }); addAudit("SETTINGS_UPDATE", "workspace"); notify("Настройки сохранены", values.workspaceName); id = "workspace"; }
       else if (sectionKey === "demand") { workspace.opportunities.forEach((item, index) => updateRecord("opportunities", item.id, { score: Math.min(99, Number(item.score ?? 60) + 2 + index), confidence: Math.min(99, Number(item.confidence ?? 70) + 1) })); addAudit("OPPORTUNITIES_RECALCULATE", `${workspace.opportunities.length} records`); id = `${workspace.opportunities.length} оценок`; }
       else if (sectionKey === "compliance") { const target = [...workspace.contacts, ...workspace.leads, ...workspace.sources].find((item) => ["REVIEW_REQUIRED", "QUARANTINED"].includes(String(item.status))); if (!target) throw new Error("Очередь проверки пуста."); const collection: CollectionKey = workspace.contacts.some((item) => item.id === target.id) ? "contacts" : workspace.leads.some((item) => item.id === target.id) ? "leads" : "sources"; updateRecord(collection, target.id, { status: collection === "leads" ? "CONTACT_ALLOWED" : "APPROVED" }); addAudit("COMPLIANCE_APPROVE", target.id); id = target.id; }
-      else if (["exports", "market-map", "audit"].includes(sectionKey)) { const data = sectionKey === "audit" ? workspace.audit : sectionKey === "market-map" ? workspace.offers : workspace.leads.filter((lead) => lead.status === "CONTACT_ALLOWED"); downloadCsv(`leadscope-${sectionKey}-${Date.now()}.csv`, data); id = record("exports", { export: `EXP-${Date.now().toString().slice(-6)}`, provider: "CSV", records: data.length, actor: "Демо-владелец", date: "только что", status: "COMPLETED" }, "DATA_EXPORT"); }
+      else if (["exports", "market-map", "audit"].includes(sectionKey)) { const data = sectionKey === "audit" ? workspace.audit : sectionKey === "market-map" ? workspace.offers : workspace.leads.filter((lead) => lead.status === "CONTACT_ALLOWED"); const columns = sectionKey === "market-map" ? marketMapCsvColumns : undefined; const filename = sectionKey === "market-map" ? `leadscope-karta-predlozheniy-${new Date().toISOString().slice(0, 10)}.csv` : `leadscope-${sectionKey}-${Date.now()}.csv`; downloadCsv(filename, data, columns); id = record("exports", { export: `EXP-${Date.now().toString().slice(-6)}`, provider: "CSV", records: data.length, actor: "Демо-владелец", date: "только что", status: "COMPLETED" }, "DATA_EXPORT"); }
       else if (sectionKey === "retention") { workspace.retention.forEach((item) => updateRecord("retention", item.id, { next: "завтра, 02:00", status: "COMPLETED" })); addAudit("RETENTION_RUN", "workspace"); id = "retention-run"; }
       else throw new Error("Действие пока недоступно.");
       if (sectionKey !== "crawls") setResult(`Готово · ${id}`);

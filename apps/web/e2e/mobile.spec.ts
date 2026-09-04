@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("dashboard and mobile navigation are usable", async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
@@ -74,4 +75,20 @@ test("approved crawl saves extracted offers in the market map", async ({ page })
   await page.goto("/market-map");
   await expect(page.getByText("Срочный ремонт")).toBeVisible();
   await expect(page.getByText("9 900 ₽")).toBeVisible();
+});
+
+test("market map downloads an Excel-compatible table", async ({ page }) => {
+  await page.goto("/market-map");
+  await page.getByRole("button", { name: "Скачать карту CSV" }).click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Скачать карту CSV" }).last().click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).not.toBeNull();
+  const csv = await readFile(path!, "utf8");
+  const lines = csv.replace(/^\uFEFF/, "").split("\r\n");
+  expect(lines[0]).toBe('"Предложение";"Компания";"Цена";"Изменение";"Provenance"');
+  expect(lines).toHaveLength(4);
+  expect(csv).not.toContain("fingerprint");
+  expect(csv).not.toContain("contentHash");
 });
