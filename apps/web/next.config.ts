@@ -4,7 +4,7 @@ import path from "node:path";
 const workspaceRoot = path.join(process.cwd(), "../..");
 
 const nextConfig: NextConfig = {
-  output: process.env.E2E ? undefined : "standalone",
+  output: process.env.E2E || process.env.VERCEL ? undefined : "standalone",
   outputFileTracingRoot: workspaceRoot,
   poweredByHeader: false,
   reactStrictMode: true,
